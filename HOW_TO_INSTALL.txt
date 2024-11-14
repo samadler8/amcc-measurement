@@ -1,0 +1,13 @@
+Open the terminal/command prompt
+Change directory to this one
+Install with pip, either locally (so updates to these files are reflected in python):
+
+pip install -e .
+
+or normally (changes made to these files will not change anything within python):
+
+pip install .
+
+then you can use any of the instruments in like this (in Python)
+
+>>> from amcc.instruments.srs_sim970 import SIM970
