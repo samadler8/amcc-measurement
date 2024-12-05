@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class Keithley2001(object):
     """Python class for Keithley 2001 Multimeter, written by Adam McCaughan"""

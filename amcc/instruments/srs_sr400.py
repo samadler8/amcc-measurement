@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 import numpy as np
 from time import sleep
 from matplotlib import pyplot as plt

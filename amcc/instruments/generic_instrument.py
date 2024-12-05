@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class GenericInstrument(object):
     """Python class for a generic SCPI-style instrument interface,

@@ -1,6 +1,4 @@
-
-
-import visa
+import pyvisa as visa
 import numpy as np
 import time
 

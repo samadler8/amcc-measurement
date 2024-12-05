@@ -1,6 +1,6 @@
 
 
-import visa
+import pyvisa as visa
 import numpy as np
 
 class Agilent33522a(object):

@@ -1,5 +1,4 @@
-#%%
-import visa
+import pyvisa as visa
 import struct
 import numpy as np
 

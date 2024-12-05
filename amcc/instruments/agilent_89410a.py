@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class Agilent89410a:
     def __init__(self, visa_name, trace=1):

@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 import time
 
 class Switchino(object):

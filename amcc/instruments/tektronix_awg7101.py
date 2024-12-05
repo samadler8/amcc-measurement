@@ -1,11 +1,4 @@
-#%%
-import visa
-import array
-import struct
-import numpy as np
-
-
-import visa
+import pyvisa as visa
 import array
 import struct
 import numpy as np
@@ -264,7 +257,7 @@ class TektronixAWG7000(object):
 #Tektronix AWG 7101A
 #instrument Driver
 
-# from . import VisaInstruments
+# from . import pyvisa as visaInstruments
 # from . import MeasureUtils
 # from MeasureUtils import fullSleep
 # from pyvisa.compat.struct import unpack, unpack_from

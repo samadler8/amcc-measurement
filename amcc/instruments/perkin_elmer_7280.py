@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class PerkinElmer7280(object):
     """Python class for Perkin Elmer 7280 DSP Lock-In Amplifier

@@ -5,7 +5,7 @@ Created on Tue Jul 16 08:00:39 2019
 @author: smb2
 """
 
-import visa
+import pyvisa as visa
 import time
 import numpy as np
 from pyvisa.resources import MessageBasedResource

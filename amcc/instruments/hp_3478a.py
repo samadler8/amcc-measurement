@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class HP3748A(object):
     """Python class for HP 3478A Multimeter, written by Adam McCaughan"""

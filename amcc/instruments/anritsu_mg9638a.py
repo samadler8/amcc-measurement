@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class AnritsuMG9638A(object):
     """Python class for Antritsu M9638 tunable laser source, written by Adam McCaughan.  Adapted from 

@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class Agilent34411A(object):
     """Python class for a generic SCPI-style instrument interface,

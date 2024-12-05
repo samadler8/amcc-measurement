@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class ThorlabsPM100D(object):
     """Python class for Thorlabs PM100, written by Adam McCaughan."""

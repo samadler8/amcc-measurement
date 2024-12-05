@@ -1,4 +1,4 @@
-import visa
+import pyvisa as visa
 
 class SIM922(object):
     """Python class for SRS SIM928 Isolated Voltage Source inside a SIM900
