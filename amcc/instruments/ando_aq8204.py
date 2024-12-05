@@ -62,22 +62,24 @@ class AndoAQ8204(object):
         if len(msg.strip()) == 0:
             wl = float("NaN")
         else:
-            wl = float(msg.strip().decode().lstrip("LW"))
+            wl = float(msg.strip().lstrip("LW"))
         return wl
 
-    def aq82011_set_lambda(self, channel, value):
+
+    def aq82011_set_lambda(self, channel, value): 
         loop = 0
         while loop < 3:
             self.instrument.write(f"C{channel}")
-            value = f"{np.around(value, 1)}"
-            self.instrument.write("LW{value}")
+            rounded_value = np.around(value, 1)
+            self.instrument.write(f"LW{rounded_value}")
             check_value = self.aq82011_get_lambda(channel)
-            if value != check_value:
+            if rounded_value != check_value:
                 loop += 1
             else:
                 return 0
-        print(f"Problem setting wavelength on the laser to {value}, instead got {check_value}")
+        print(f"Problem setting wavelength on the laser to {rounded_value}, instead got {check_value}")
         return -1
+
 
     def aq82011_get_cmd(self, channel, cmd):
         loop = 0
@@ -250,6 +252,19 @@ class AndoAQ8204(object):
         return key
 
     def aq82012_set_range(self, channel, value):
+        rng_dict = {'A': 'AUTO',
+            'C': +30,
+            'D': +20,
+            'E': +10,
+            'F': 0,
+            'G': -10,
+            'H': -20,
+            'I' : -30,
+            'J' : -40,
+            'K': -50,
+            'L' : -60,
+            'Z' : 'HOLD',
+        }
         self.instrument.write(f"C{channel}")
         self.instrument.write("D1")
         if type(value) == str:
@@ -258,6 +273,10 @@ class AndoAQ8204(object):
             rng = self.rng_dict[int(value)]
         self.instrument.write(f"PR{rng}")
         check_value = self.aq82012_get_range(channel)
+        if value in rng_dict.keys():
+            value = rng_dict[value]
+            if isinstance(value, str):
+                value = check_value
         if value != check_value:
             print(f"Problem setting power meter range to {value}, instead got {check_value}")
         return rng
@@ -267,29 +286,33 @@ class AndoAQ8204(object):
         while loop < 3:
             self.instrument.write(f"C{channel}")
             self.instrument.write("D1")
-            msg = self.instrument.query("PW?", wait=0.1, attempts=3)
-            msg = msg.strip().decode()
-            if "," in msg:
-                print("bad msg from power meter", repr(msg))
-                msg = ""
-            if len(msg) > 0:
-                try:
-                    pow_str = msg.strip().split("PW")[1]
-                except:
-                    print("Problem parsing get_lambda",repr(msg))
-                    pow_str = ""
-                if len(pow_str) > 0:
-                    wl = float(pow_str)
-                    return wl
+            try:
+                msg = self.instrument.query("PW?")
+                msg = msg.strip()  # Remove leading/trailing whitespace
+                if "," in msg:
+                    print("Bad message from power meter:", repr(msg))
+                    msg = ""
+                if len(msg) > 0:
+                    try:
+                        pow_str = msg.split("PW")[1]  # Split based on "PW"
+                    except IndexError:
+                        print("Problem parsing get_lambda:", repr(msg))
+                        pow_str = ""
+                    if len(pow_str) > 0:
+                        wl = float(pow_str)
+                        return wl
+                    else:
+                        print("Trying to get lambda again")
+                        loop += 1
                 else:
-                    print("trying to lambda again")
+                    print("Trying to get lambda again")
                     loop += 1
-            else:
-                print("trying to lambda again")
+            except Exception as e:
+                print(f"Error querying instrument: {e}")
                 loop += 1
+                time.sleep(0.1)  # Wait before retrying
         print("Problem getting the wavelength from the power meter")
-        wl = -1
-        return wl
+        return -1
 
     def aq82012_set_lambda(self, channel, value):
         self.instrument.write(f"C{channel}")
@@ -593,12 +616,11 @@ class AndoAQ8204(object):
 
 
 
-    # Base Optical Switch - aq82014
-    def aq82014_get_route(self, channel, device):
+    # Base Optical Switch - aq8201418
+    def aq8201418_get_route(self, channel):
         loop = 0
         while loop < 3:
             self.instrument.write(f"C{channel}")
-            self.instrument.write(f"D{device}")
             msg = self.instrument.query("SASB?", 0.5)
             msg = msg.strip()
             msg = msg.decode()
@@ -617,11 +639,10 @@ class AndoAQ8204(object):
         output = -1
         return output
 
-    def aq82014_set_route(self, channel, device, value):
+    def aq8201418_set_route(self, channel, value):
         self.instrument.write(f"C{channel}\n")
-        self.instrument.write(f"D{device}\n")
         self.instrument.write(f"SA1SB{value}\n")
-        check_value = self.aq82014_get_route(channel, device)
+        check_value = self.aq8201418_get_route(channel)
         if value != check_value:
             print(f"Problem setting route to {value}, instead got {check_value}")
         return
