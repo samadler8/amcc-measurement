@@ -97,3 +97,17 @@ class FiberControlMPC101:
             'min_counts': min_counts,
             'min_position': min_position
         }
+    
+    def generate_settings(self, step=1.0):
+        """
+        Generate polarization settings for a 3D grid search.
+        Args:
+            step (float): Step size in degrees for each waveplate axis.
+        Yields:
+            tuple: (X, Y, Z) settings for waveplate positions.
+        """
+        positions = np.arange(-99.0, 100.0, step)
+        for x in positions:
+            for y in positions:
+                for z in positions:
+                    yield (x, y, z)

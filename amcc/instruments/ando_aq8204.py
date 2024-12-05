@@ -47,7 +47,7 @@ class AndoAQ8204(object):
 
 
     # Base Laser - aq82011
-    def aq820113_std_init(self, channel):
+    def aq82011_std_init(self, channel):
         self.instrument.write(f"C{channel}")
         self.instrument.write("LUS0")  # Set to wavelength units of nm
         self.instrument.write("LEMO0")  # Set to external modulation off
