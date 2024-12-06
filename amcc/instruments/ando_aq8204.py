@@ -3,6 +3,7 @@ import numpy as np
 import time
 import math
 import threading
+import re
 
 class AndoAQ8204(object):
     """Python class for Ando rack aq8204, written by Sam Adler
@@ -85,7 +86,7 @@ class AndoAQ8204(object):
         loop = 0
         while loop < 3:
             self.instrument.write(f"C{channel}")
-            msg = self.instrument.query("%s?" % cmd)
+            msg = self.instrument.query(f"{cmd}?")
             msg = msg.strip()
             if len(msg) > 0:
                 value = float(msg.strip().split(cmd)[1])
@@ -219,7 +220,6 @@ class AndoAQ8204(object):
 
     def aq82012_std_init(self, channel):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
         self.instrument.write("PMO0")  # Set CW
         self.instrument.write("PDR0")  # Set no reference
         self.instrument.write("PH0")  # No max/min measurement
@@ -231,7 +231,6 @@ class AndoAQ8204(object):
 
     def aq82012_get_range(self, channel):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
         msg = self.instrument.query("PR?")
         try:
             value = msg.strip().split("PR")[1]
@@ -266,7 +265,6 @@ class AndoAQ8204(object):
             'Z' : 'HOLD',
         }
         self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
         if type(value) == str:
             rng = value.upper()
         else:
@@ -285,7 +283,6 @@ class AndoAQ8204(object):
         loop = 0
         while loop < 3:
             self.instrument.write(f"C{channel}")
-            self.instrument.write("D1")
             try:
                 msg = self.instrument.query("PW?")
                 msg = msg.strip()  # Remove leading/trailing whitespace
@@ -316,7 +313,6 @@ class AndoAQ8204(object):
 
     def aq82012_set_lambda(self, channel, value):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
         self.instrument.write(f"PW{float(value)}")
         time.sleep(0.5)
         check_value = self.aq82012_get_lambda(channel)
@@ -327,7 +323,6 @@ class AndoAQ8204(object):
 
     def aq82012_get_atim(self, channel):
         self.instrument.write(f'C{channel}')
-        self.instrument.write("D1")
         msg = self.instrument.query("PA?")
         key = None
 
@@ -347,7 +342,6 @@ class AndoAQ8204(object):
 
     def aq82012_set_atim(self, channel, value):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
         atime = self.atime_dict[value]
         self.instrument.write(f"PA{atime}")
         check_value = self.aq82012_get_atim(channel)
@@ -357,66 +351,26 @@ class AndoAQ8204(object):
 
     def aq82012_set_unit(self, channel, value):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
         if value == 1:
             self.instrument.write("PFA")  #  Watt
         elif value == 0:
             self.instrument.write("PFB")  # dBm
         return
 
-    def aq82012_get_unit(self, channel):
-        self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
-        msgin = self.instrument.query("PF?")
-        unit = msgin.strip().split("PF")[1]
-        if unit == "A":
-            return 1
-        elif unit == "B":
-            return 0
-        else:
-            return -1
-
-    def aq82012_parse_power(self, msg):
-        if len(msg) == 0:
-            print(f"problem with msg{repr(msg)}")
-            return float("nan")
-        status = msg[2]
-        if status != "I":
-            return float("nan")
-        unit = msg[4]
-        if unit == "U":
-            power = 10 ** (float(msg[6:]) / 10.0) * 1e-3
-        else:
-            unit = self.unit_dict[msg[4]]
-            power = float(msg[6:]) * (10 ** unit)
-
-        rng = msg[5]
-        rng = self.aq82012_find_key(self.rng_dict, rng)
-        return power
-
     def aq82012_get_power(self, channel):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
-        splitstr = f"POD{channel}"
-        while True:
-            msgin = self.instrument.query("POD?", wait=0.1, attempts=1)
-            if len(msgin) > 0:
-                break
-        try:
-            msgin = msgin.strip().split(splitstr)[1]
-            msgin = f"{channel}{msgin.split(",")[0]}"
-        except:
-            print(f"Problem parsing power{repr(msgin)}")
-            msgin = ""
-
-        if msgin == "":
-            return float("nan")
-        power = self.parse_power(msgin)
+        msgin = self.instrument.query("POD?", 0.3)
+        power_val = msgin[10:]
+        unit = msgin[7]
+        if unit == "U":
+            power = 10 ** ((float(power_val)/10)) * 1e-3
+        else:
+            unit = self.unit_dict[msgin[4]]
+            power = float(power_val) * (10 ** unit)
         return power
-
+    
     def aq82012_get_status(self, channel):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("D1")
         msgin = self.instrument.query("POD?",.3).strip().split("POD")[1]
         if len(msgin) < 2:
             msgin = "ZZZ"
@@ -435,9 +389,6 @@ class AndoAQ8204(object):
         self.nreadings = self.init_nreadings
         self.measure_thread = threading.Timer(0, self.measure)
         self.measure_thread.start()
-
-    def aq82012_wait(self):
-        return
 
     def aq82012_measure(self, channel):
         self.aq82012_measure_wait_before(channel)
@@ -488,7 +439,6 @@ class AndoAQ8204(object):
         while zeroing_pending:
             start = time.time()
             self.instrument.write(f"C{channel}")
-            self.instrument.write("D1")
             self.instrument.write("PZ")
             time.sleep(1)
             while True:
@@ -504,25 +454,6 @@ class AndoAQ8204(object):
             t = time.time() - start
         print(f"Done zero: {t}")
         return t
-    
-    def aq82012_get_powmeter(self, channel):
-        self.instrument.write(f"C{channel}")
-        msg = self.instrument.query("D?")
-        value = msg.strip().lstrip("D")
-        print(f"get_powmeter{value}")
-        return int(value)  #  Need to change to try exception here...
-
-    def aq82012_set_powmeter(self, channel, value):
-        self.instrument.write(f"C{channel}")
-        self.instrument.write(f"D{value}")
-        time.sleep(0.5)
-        check_value = self.aq82012_get_powmeter(channel)
-        if value != check_value:
-            print(f"Problem setting which powermeter to {value}, instead got {check_value}")
-        return
-    
-
-
 
 
 
@@ -537,22 +468,23 @@ class AndoAQ8204(object):
         while loop < 3:
             self.instrument.write(f"C{channel}")
             msg = self.instrument.query("AAV?")
-            msg = msg.strip()
-            msg = msg.decode()
+            msg = msg.strip()  # Remove leading/trailing whitespace
             if len(msg) > 0:
                 try:
+                    # Extract and return the numeric value after "AAV"
                     return float(msg.strip().split("AAV")[1])
-                except:
+                except (IndexError, ValueError):
                     loop += 1
+                    print(f"Invalid response format: {msg}")  # Debugging invalid response
             else:
                 loop += 1
         print("Problem getting attenuator value")
-        return
+        return float("nan")  # Return NaN if unable to retrieve value
 
     def aq820133_set_att(self, channel, value):
         self.instrument.write(f"C{channel}")
-        self.instrument.write(f"AAV{np.abs(value)}\n")
-        time.sleep(.2)
+        self.instrument.write(f"AAV{np.abs(value)}")
+        time.sleep(0.2)
         check_value = self.aq820133_get_att(channel)
         if f"{value:.3g}" != f"{check_value:.3g}":
             print(f"Problem setting attenuator to {value}, instead set to {check_value}")
@@ -560,18 +492,23 @@ class AndoAQ8204(object):
 
     def aq820133_get_lambda(self, channel):
         self.instrument.write(f"C{channel}")
-        msg = self.instrument.query("AW?\n")
-        msg = msg.decode()
+        msg = self.instrument.query("AW?")
+        msg = msg.strip()  # Strip leading/trailing whitespace
         if len(msg) > 2:
-            return float(msg.strip().split("AW")[1])
+            try:
+                # Extract and return the numeric value after "AW"
+                return float(msg.strip().split("AW")[1])
+            except (IndexError, ValueError):
+                print(f"Invalid response format: {msg}")  # Debugging invalid response
+                return float("nan")
         else:
             return float("nan")
 
     def aq820133_set_lambda(self, channel, value):
         self.instrument.write(f"C{channel}")
-        value = int(np.around(value))  # resolution is nearest nm
-        self.instrument.write(f"AW{int(np.around(value))}\n")
-        time.sleep(.2)
+        value = int(np.around(value))  # Resolution is nearest nm
+        self.instrument.write(f"AW{value}")
+        time.sleep(0.2)
         check_value = self.aq820133_get_lambda(channel)
         if f"{value:.3g}" != f"{check_value:.3g}":
             print(f"Problem setting lambda to {value}, instead set to {check_value}")
@@ -579,14 +516,14 @@ class AndoAQ8204(object):
 
     def aq820133_enable(self, channel):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("ASHTR1\n")
+        self.instrument.write("ASHTR1")
         if not self.aq820133_get_ASHTR(channel):
             print("Problem with enable")
         return
 
     def aq820133_disable(self, channel):
         self.instrument.write(f"C{channel}")
-        self.instrument.write("ASHTR0\n")
+        self.instrument.write("ASHTR0")
         if self.aq820133_get_ASHTR(channel):
             print("Problem with disable")
         return
@@ -594,11 +531,16 @@ class AndoAQ8204(object):
     def aq820133_get_ASHTR(self, channel):
         self.instrument.write(f"C{channel}")
         msg = self.instrument.query("ASHTR?")
-        msg = msg.strip()
-        msg = msg.decode()
+        msg = msg.strip()  # Remove leading/trailing whitespace
         if len(msg) > 0:
-            return "1" == (msg.strip().split("ASHTR")[1])
-        return
+            try:
+                # Extract and compare value after "ASHTR"
+                return "1" == (msg.strip().split("ASHTR")[1])
+            except IndexError:
+                print(f"Invalid response format: {msg}")  # Debugging invalid response
+        return False
+
+
 
     
 
@@ -622,9 +564,7 @@ class AndoAQ8204(object):
         while loop < 3:
             self.instrument.write(f"C{channel}")
             msg = self.instrument.query("SASB?", 0.5)
-            msg = msg.strip()
-            msg = msg.decode()
-            # print 'msg from get_route',msg
+            msg = msg.strip()  # Removes leading/trailing whitespace
             if len(msg) > 0:
                 if ("SSTRAIGHT" in msg) or ("SA1SB1" in msg):
                     output = 1
@@ -640,13 +580,22 @@ class AndoAQ8204(object):
         return output
 
     def aq8201418_set_route(self, channel, value):
-        self.instrument.write(f"C{channel}\n")
-        self.instrument.write(f"SA1SB{value}\n")
+        self.instrument.write(f"C{channel}")
+        self.instrument.write(f"SA1SB{value}")
+        time.sleep(1)  # Adjust this based on your device's response time
         check_value = self.aq8201418_get_route(channel)
-        if value != check_value:
+        if int(value) != int(check_value):
             print(f"Problem setting route to {value}, instead got {check_value}")
+            retry_count = 3
+            for i in range(retry_count):
+                print(f"Retrying... ({i + 1}/{retry_count})")
+                self.instrument.write(f"SA1SB{value}")
+                time.sleep(1)  # Wait for the route change to take effect
+                check_value = self.aq8201418_get_route(channel)
+                if int(value) == int(check_value):
+                    print(f"Route successfully set to {value}")
+                    break
+            else:
+                print(f"Failed to set route to {value} after {retry_count} attempts")
         return
-
-
-
 
