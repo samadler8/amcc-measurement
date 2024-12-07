@@ -363,7 +363,7 @@ class AndoAQ8204(object):
         power_val = msgin[10:]
         unit = msgin[7]
         if unit == "U":
-            power = 10 ** ((float(power_val)/10)) * 1e-3
+            power = 1e-3 * 10 ** ((float(power_val)/10))
         else:
             unit = self.unit_dict[msgin[4]]
             power = float(power_val) * (10 ** unit)
