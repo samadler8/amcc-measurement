@@ -5,6 +5,8 @@ import time
 
 class FiberControlMPC101:
     """Class for controlling an MPC1 Polarization Controller."""
+
+    axes = ['X', 'Y', 'Z']
     
     def __init__(self, visa_name):
         self.rm = visa.ResourceManager()
@@ -51,10 +53,15 @@ class FiberControlMPC101:
         Returns:
             float: Current angle of the axis.
         """
-        if axis not in ['X', 'Y', 'Z']:
+        if axis not in self.axes:
             raise ValueError("Axis must be one of 'X', 'Y', or 'Z'.")
         response = self.query(f'{axis}?')
         return float(response.strip())
+    
+    def set_waveplate_positions(self, angles):
+        for i, angle in enumerate(angles):
+            self.write(f'{self.axes[i]}={angle:.2f}')
+        return
     
     def set_rate(self, rate):
         """Set the speed of waveplate motion."""
