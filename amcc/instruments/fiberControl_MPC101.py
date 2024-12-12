@@ -1,6 +1,4 @@
 import pyvisa as visa
-import numpy as np
-import time
 
 
 class FiberControlMPC101:
