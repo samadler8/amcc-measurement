@@ -1,15 +1,14 @@
-import pyvisa
+import pyvisa as visa
 import numpy as np
 import time
 import math
 import threading
-import re
 
 class AndoAQ8204(object):
     """Python class for Ando rack aq8204, written by Sam Adler
     Use like ando = aq8204('GPIB0::5::INSTR')"""
     def __init__(self, address):
-        self.rm = pyvisa.ResourceManager()
+        self.rm = visa.ResourceManager()
         self.instrument = self.rm.open_resource(address)
 
         rng_list = np.arange(30, -70, -10)
